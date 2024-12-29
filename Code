@@ -1,0 +1,89 @@
+#include <Servo.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+// OLED display width and height
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
+// Declaration for SSD1306 display connected using I2C
+#define OLED_RESET    -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#define TRIG_PIN 7
+#define ECHO_PIN 6
+
+long duration;
+int distance;
+Servo myservo;
+
+int calculateDistance() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  duration = pulseIn(ECHO_PIN, HIGH);
+  distance = duration * 0.034 / 2;
+  return distance;
+}
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  myservo.attach(12);
+  
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+  display.display();
+  delay(2000); // Pause for 2 seconds
+  display.clearDisplay();
+}
+
+void loop() {
+  int i;
+  display.clearDisplay();
+  display.drawCircle(display.width() / 2, display.height() - 1, 10, SSD1306_WHITE);
+  display.drawCircle(display.width() / 2, display.height() - 1, 20, SSD1306_WHITE);
+  display.drawCircle(display.width() / 2, display.height() - 1, 30, SSD1306_WHITE);
+  display.drawCircle(display.width() / 2, display.height() - 1, 40, SSD1306_WHITE);
+  display.drawCircle(display.width() / 2, display.height() - 1, 50, SSD1306_WHITE);
+
+  for (i = 15; i <= 165; i++) {
+    myservo.write(i);
+    delay(15);
+    int dist = calculateDistance();
+    Serial.print(i);
+    Serial.print(",");
+    Serial.print(dist);
+    Serial.print(".");
+
+    int angle = map(i, 15, 165, 0, 180);
+    int x = display.width() / 2 + (dist * cos(radians(angle)));
+    int y = display.height() - 1 - (dist * sin(radians(angle)));
+
+    display.drawLine(display.width() / 2, display.height() - 1, x, y, SSD1306_WHITE);
+    display.display();
+  }
+  
+  for (i = 165; i >= 15; i--) {
+    myservo.write(i);
+    delay(15);
+    int dist = calculateDistance();
+    Serial.print(i);
+    Serial.print(",");
+    Serial.print(dist);
+    Serial.print(".");
+
+    int angle = map(i, 15, 165, 0, 180);
+    int x = display.width() / 2 + (dist * cos(radians(angle)));
+    int y = display.height() - 1 - (dist * sin(radians(angle)));
+
+    display.drawLine(display.width() / 2, display.height() - 1, x, y, SSD1306_WHITE);
+    display.display();
+  }
+}
